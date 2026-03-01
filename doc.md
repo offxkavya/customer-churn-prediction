@@ -34,7 +34,7 @@ Data flows from user input to prediction output through four stages:
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  STAGE 1: USER INPUT                                    │
-│  Customer details entered via Streamlit sidebar widgets  │
+│  Customer details entered via Streamlit sidebar widgets │
 │  (Age, Gender, Tenure, Usage Frequency, etc.)           │
 └────────────────────────┬────────────────────────────────┘
                          │
@@ -65,9 +65,9 @@ Data flows from user input to prediction output through four stages:
 
 ```
 ┌──────────────┐     ┌────────────────────────────────┐     ┌──────────────┐
-│  Google Colab │────▶│  churn_model.pkl                │◀────│  app.py      │
-│  (Training)   │     │  (Pipeline: Preprocessor +      │     │  (Streamlit) │
-│               │     │   DecisionTreeClassifier)        │     │              │
+│ Google Colab │────▶│  churn_model.pkl               │◀────│  app.py      │
+│  (Training)  │     │  (Pipeline: Preprocessor +     │     │  (Streamlit) │
+│              │     │  DecisionTreeClassifier)       │     │              │
 └──────────────┘     └────────────────────────────────┘     └──────┬───────┘
                                                                     │
                                                                     ▼
