@@ -14,7 +14,7 @@ model = joblib.load("churn_model.pkl")
 
 # Title
 st.markdown(
-    "<h1 style='text-align: center;'>Customer Churn Prediction System</h1>",
+    "<h1 style='text-align: center;'>📊 Customer Churn Prediction System</h1>",
     unsafe_allow_html=True
 )
 
@@ -26,7 +26,7 @@ st.markdown(
 st.divider()
 
 # Sidebar Inputs
-st.sidebar.header("Enter Customer Details")
+st.sidebar.header("📝 Enter Customer Details")
 
 age = st.sidebar.slider("Age", 18, 80, 30)
 tenure = st.sidebar.slider("Tenure (Months)", 0, 120, 12)
@@ -42,7 +42,7 @@ contract = st.sidebar.selectbox("Contract Length", ["Monthly", "Quarterly", "Ann
 
 st.sidebar.divider()
 
-predict_button = st.sidebar.button("Predict Churn")
+predict_button = st.sidebar.button("🚀 Predict Churn")
 
 # Main Area
 if predict_button:
@@ -63,7 +63,7 @@ if predict_button:
     prediction = model.predict(input_data)[0]
     probability = model.predict_proba(input_data)[0][1]
 
-    st.subheader("Prediction Result")
+    st.subheader("📈 Prediction Result")
 
     col1, col2 = st.columns(2)
 
@@ -74,16 +74,16 @@ if predict_button:
 
     with col2:
         if prediction == 1:
-            st.error("High Risk of Churn!")
-            st.markdown("### Risk Level: HIGH")
+            st.error("⚠️ High Risk of Churn")
+            st.markdown("### 🔴 Risk Level: HIGH")
         else:
-            st.success("Low Risk of Churn!")
-            st.markdown("### Risk Level: LOW")
+            st.success("✅ Low Risk of Churn")
+            st.markdown("### 🟢 Risk Level: LOW")
 
     st.divider()
 
-    st.subheader("Customer Profile Summary")
+    st.subheader("📋 Customer Profile Summary")
     st.dataframe(input_data, use_container_width=True)
 
 else:
-    st.info("Enter customer details in the sidebar and click Predict Churn")
+    st.info("👈 Enter customer details in the sidebar and click Predict Churn")
