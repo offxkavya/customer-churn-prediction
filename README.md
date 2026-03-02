@@ -30,55 +30,9 @@ This is **Milestone 1** of a larger initiative to build an agentic AI retention 
 
 ## System Architecture
 
-Data flows from user input to prediction output through four stages:
+Data flows from user input to prediction output through four stages. Below is the system architecture diagram illustrating the pipeline:
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  STAGE 1: USER INPUT                                    │
-│  Customer details entered via Streamlit sidebar widgets  │
-│  (Age, Gender, Tenure, Usage Frequency, etc.)           │
-└────────────────────────┬────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│  STAGE 2: PREPROCESSING (inside Pipeline)               │
-│  StandardScaler → 7 numeric features (zero mean, σ=1)   │
-│  OneHotEncoder  → 3 categorical features (binary cols)  │
-└────────────────────────┬────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│  STAGE 3: MODEL INFERENCE                               │
-│  Logistic Regression Classifier                         │
-│  Outputs: binary prediction (0/1) + probability score   │
-└────────────────────────┬────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│  STAGE 4: OUTPUT & VISUALIZATION                        │
-│  Gauge chart (churn probability %)                      │
-│  Risk level indicator (HIGH / LOW) with color coding    │
-│  Risk interpretation (3-tier contextual message)        │
-│  Customer metrics bar chart + profile summary table     │
-└─────────────────────────────────────────────────────────┘
-```
-
-**Component diagram:**
-
-```
-┌──────────────┐     ┌────────────────────────────────┐     ┌──────────────┐
-│  Google Colab │────▶│  churn_model.pkl                │◀────│  app.py      │
-│  (Training)   │     │  (Pipeline: Preprocessor +      │     │  (Streamlit  │
-│               │     │   LogisticRegression)            │     │  + Plotly)   │
-└──────────────┘     └────────────────────────────────┘     └──────┬───────┘
-                                                                    │
-                                                                    ▼
-                                                           ┌──────────────┐
-                                                           │ Hugging Face │
-                                                           │   Spaces     │
-                                                           │  (Hosting)   │
-                                                           └──────────────┘
-```
+![System Architecture](./Assets/SystemArchitecture.png)
 
 ---
 

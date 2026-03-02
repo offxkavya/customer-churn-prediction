@@ -466,20 +466,7 @@ The system follows a linear pipeline architecture. Data flows through four disti
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[
-    node distance=1.2cm,
-    block/.style={rectangle, draw, rounded corners, fill=blue!8, text width=10cm, minimum height=1.2cm, align=center, font=\small},
-    arrow/.style={-{Stealth[length=3mm]}, thick}
-]
-    \node[block] (input) {\textbf{Stage 1: User Input}\\Customer details entered via Streamlit sidebar widgets\\(Age, Gender, Tenure, Usage Frequency, etc.)};
-    \node[block, below=of input] (preprocess) {\textbf{Stage 2: Preprocessing (inside Pipeline)}\\StandardScaler on 7 numeric features $\rightarrow$ zero mean, unit variance\\OneHotEncoder on 3 categorical features $\rightarrow$ binary indicator columns};
-    \node[block, below=of preprocess] (model) {\textbf{Stage 3: Model Inference}\\Logistic Regression Classifier processes the transformed feature vector\\Outputs: binary prediction (0/1) + calibrated probability score};
-    \node[block, below=of model] (output) {\textbf{Stage 4: Output \& Visualization}\\Plotly gauge chart (churn probability \%)\\Risk level indicator (HIGH/LOW) with risk interpretation\\Customer metrics bar chart + profile summary table};
-
-    \draw[arrow] (input) -- (preprocess);
-    \draw[arrow] (preprocess) -- (model);
-    \draw[arrow] (model) -- (output);
-\end{tikzpicture}
+\includegraphics[width=0.9\textwidth]{Assets/SystemArchitecture.png}
 \caption{End-to-end data flow from user input to prediction output}
 \label{fig:architecture}
 \end{figure}
