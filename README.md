@@ -99,7 +99,7 @@ This is **Milestone 1** of a larger initiative to build an agentic AI retention 
 
 ```
 customer-churn-prediction/
-├── Assets/                                          (reserved for future assets)
+├── Assets/                                          
 ├── Data/
 │   └── customer_churn_dataset-testing-master.csv   (64,374 rows of customer data)
 ├── Model/
