@@ -1,8 +1,28 @@
-# Customer Churn Prediction — Full Codebase Walkthrough
+# Customer Churn Prediction — Project Documentation
+
+## Table of Contents
+
+- [Project Overview](#project-overview)
+- [System Architecture](#system-architecture)
+- [Setup Instructions](#setup-instructions)
+- [Project Structure](#project-structure)
+- [File-by-File Breakdown](#file-by-file-breakdown)
+- [Model Details](#model-details)
+- [Visualizations](#visualizations)
+- [Deployment](#deployment)
+- [Key Observations](#key-observations)
+
+---
 
 ## Project Overview
 
-This is an **end-to-end Machine Learning project** that predicts whether a customer will churn (leave) based on their demographic and behavioral data. It includes a Jupyter notebook for model training/evaluation and a **Streamlit web app** (with Plotly visualizations) for real-time predictions, deployed on **Hugging Face Spaces**.
+An **end-to-end Machine Learning project** that predicts customer churn using historical behavioral data. It includes:
+
+- A **Jupyter Notebook** for data exploration, model training, and evaluation
+- A **Streamlit web app** with Plotly visualizations for real-time churn predictions
+- Deployment on **Hugging Face Spaces**
+
+This is **Milestone 1** of a larger initiative to build an agentic AI retention strategist.
 
 ---
 
@@ -204,6 +224,75 @@ plotly
 - scikit-learn **pinned to 1.6.1** (must match the training version to avoid model deserialization errors)
 - **plotly** added for gauge chart and bar chart visualizations
 - Other packages unpinned (latest compatible versions)
+
+---
+
+## Model Details
+
+### Model Comparison
+
+| Metric | Logistic Regression | Decision Tree |
+|---|---|---|
+| Accuracy | 83.17% | **95.97%** |
+| Precision | 81.63% | — |
+| Recall | 83.06% | **98.24%** |
+| F1-Score | 82.34% | — |
+
+### Feature Importance (Decision Tree)
+
+| Rank | Feature | Importance |
+|---|---|---|
+| 1 | Payment Delay | 0.4787 |
+| 2 | Support Calls | 0.1440 |
+| 3 | Tenure | 0.0991 |
+| 4 | Usage Frequency | 0.0910 |
+| 5 | Gender (Female) | 0.0828 |
+
+### Confusion Matrix (Logistic Regression)
+
+|  | Predicted: Stayed (0) | Predicted: Churned (1) |
+|---|---|---|
+| **Actual: Stayed (0)** | 5,656 | 1,137 |
+| **Actual: Churned (1)** | 1,030 | 5,052 |
+
+---
+
+## Visualizations
+
+### Why These Charts?
+
+Visualizations were chosen to improve model **interpretability** and make the app **business-friendly**:
+
+| Chart | What It Shows | Why It's Included |
+|---|---|---|
+| **Gauge Chart** | Churn probability (0–100%) | The model's main output is probability — a speedometer visual makes risk level immediately clear |
+| **Customer Metrics Bar Chart** | Numeric feature values | Helps understand *why* a customer may be at risk (e.g., high Payment Delay, low Tenure) |
+| **Customer Profile Table** | All input features | Creates a self-contained record for each prediction |
+
+### What Was NOT Added (and Why)
+
+- ❌ **Pie charts** — not meaningful for single-customer prediction
+- ❌ **Random line charts** — no time-series data to plot
+- ❌ **Excessive animations** — this is an ML prediction app, not a data analytics dashboard
+
+---
+
+## Deployment
+
+### Hugging Face Spaces
+
+The app is deployed on **Hugging Face Spaces**, which:
+
+- Natively supports Streamlit apps
+- Automatically builds from the Git repository
+- Provides a public URL for anyone to test predictions
+- Requires zero infrastructure management
+
+### Deployment Steps
+
+1. Push `app.py`, `churn_model.pkl`, and `requirements.txt` to a Hugging Face Space
+2. Hugging Face detects the Streamlit SDK and installs dependencies
+3. The app is live at the Space's public URL: [https://offxkavya-customer-churn-prediction.hf.space/](https://offxkavya-customer-churn-prediction.hf.space/)
 
 ---
 
