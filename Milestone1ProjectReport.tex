@@ -108,7 +108,7 @@
 \section*{Abstract}
 \addcontentsline{toc}{section}{Abstract}
 
-Customer churn represents a critical business challenge across subscription-based industries, where the cost of acquiring new customers significantly exceeds that of retaining existing ones. This report presents the design and implementation of an AI-driven customer analytics system that predicts customer churn using classical machine learning techniques applied to historical behavioral data. We evaluate two supervised learning approaches---Logistic Regression and Decision Tree Classification---on a dataset of 64,374 customer records comprising both demographic and behavioral features. Our analysis reveals that Payment Delay is the single most influential predictor of churn, accounting for 47.9\% of feature importance. The Decision Tree model, constrained to a maximum depth of 5 to prevent overfitting, achieves a testing accuracy of 95.97\% and a recall of 98.24\%, substantially outperforming the Logistic Regression baseline (83.17\% accuracy). The trained model is deployed via a Streamlit web application that provides real-time churn risk assessment with an interactive user interface. This work constitutes Milestone\,1 of a larger initiative to build an agentic AI retention strategist.
+Customer churn represents a critical business challenge across subscription-based industries, where the cost of acquiring new customers significantly exceeds that of retaining existing ones. This report presents the design and implementation of an AI-driven customer analytics system that predicts customer churn using classical machine learning techniques applied to historical behavioral data. We evaluate two supervised learning approaches---Logistic Regression and Decision Tree Classification---on a dataset of 64,374 customer records comprising both demographic and behavioral features. Our analysis reveals that Payment Delay is the single most influential predictor of churn, accounting for 47.9\% of feature importance (from the Decision Tree). The Decision Tree model achieves a testing accuracy of 95.97\%, while Logistic Regression achieves 83.17\%. However, Logistic Regression is chosen for deployment because it produces smoother, well-calibrated probability estimates suitable for the gauge chart visualization and risk interpretation in the web application. The trained Logistic Regression pipeline is deployed via a Streamlit web application---enhanced with Plotly visualizations---on Hugging Face Spaces, providing real-time churn risk assessment. This work constitutes Milestone\,1 of a larger initiative to build an agentic AI retention strategist.
 
 % ══════════════════════════════════════════════════════════════════════════
 %                           1. INTRODUCTION
@@ -448,8 +448,9 @@ Several optimization steps were taken to improve model performance and deploymen
 \subsection{Deployment Optimization}
 
 \begin{enumerate}
-    \item \textbf{Streamlit application}: A lightweight, interactive web app (\texttt{app.py}, 89 lines) was built for real-time inference. It uses sidebar widgets for input and displays both the churn probability and a categorical risk level (HIGH/LOW).
+    \item \textbf{Streamlit application with Plotly}: The web app (\texttt{app.py}, 180 lines) was built with a tabbed interface using Plotly for professional visualizations. A gauge chart displays churn probability, and a bar chart shows the customer's feature profile.
     \item \textbf{Single-artifact deployment}: Because the pipeline includes the preprocessor, the deployed model accepts raw features (including categorical strings) without requiring separate encoding logic in the application layer.
+    \item \textbf{Logistic Regression for deployment}: While the Decision Tree achieved higher accuracy (95.97\% vs 83.17\%), Logistic Regression was chosen for deployment because it produces smoother, well-calibrated probability estimates. This is critical for the gauge chart visualization and the three-tier risk interpretation, where gradual probability changes convey more meaningful risk signals than the Decision Tree's coarser probability steps.
 \end{enumerate}
 
 % ══════════════════════════════════════════════════════════════════════════
@@ -465,43 +466,26 @@ The system follows a linear pipeline architecture. Data flows through four disti
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[
-    node distance=1.2cm,
-    block/.style={rectangle, draw, rounded corners, fill=blue!8, text width=10cm, minimum height=1.2cm, align=center, font=\small},
-    arrow/.style={-{Stealth[length=3mm]}, thick}
-]
-    \node[block] (input) {\textbf{Stage 1: User Input}\\Customer details entered via Streamlit sidebar widgets\\(Age, Gender, Tenure, Usage Frequency, etc.)};
-    \node[block, below=of input] (preprocess) {\textbf{Stage 2: Preprocessing (inside Pipeline)}\\StandardScaler on 7 numeric features $\rightarrow$ zero mean, unit variance\\OneHotEncoder on 3 categorical features $\rightarrow$ binary indicator columns};
-    \node[block, below=of preprocess] (model) {\textbf{Stage 3: Model Inference}\\Decision Tree Classifier (\texttt{max\_depth=5}) processes the transformed feature vector\\Outputs: binary prediction (0/1) + probability score};
-    \node[block, below=of model] (output) {\textbf{Stage 4: Output Display}\\Churn probability (\%) with progress bar\\Risk level indicator (HIGH/LOW) with color coding\\Full customer profile summary table};
-
-    \draw[arrow] (input) -- (preprocess);
-    \draw[arrow] (preprocess) -- (model);
-    \draw[arrow] (model) -- (output);
-\end{tikzpicture}
+\includegraphics[width=0.9\textwidth]{Assets/SystemArchitecture.png}
 \caption{End-to-end data flow from user input to prediction output}
 \label{fig:architecture}
 \end{figure}
 
 \textit{Why this architecture?} A linear pipeline is chosen over more complex architectures (e.g., microservices) because the system has a single, well-defined task: transform input $\rightarrow$ predict $\rightarrow$ display. The simplicity minimizes latency, reduces failure points, and keeps the codebase maintainable.
 
-\subsection{Design Justification: Why Decision Tree Over Other Models}
+\subsection{Design Justification: Dual-Model Strategy}
 
-Two models were evaluated. The Decision Tree was selected as the production model over Logistic Regression for the following reasons:
+Two models were evaluated. Both serve distinct purposes in the final system:
 
 \begin{enumerate}
-    \item \textbf{Non-linear decision boundaries}: Churn behavior is driven by complex interactions between features (e.g., high Payment Delay \textit{combined with} low Usage Frequency). Logistic Regression can only model linear relationships between features and the target, which is why it plateaued at 83.17\% accuracy. The Decision Tree captures these non-linear interactions naturally through recursive feature-space partitioning, achieving 95.97\%.
+    \item \textbf{Decision Tree --- for analysis}: The Decision Tree (\texttt{max\_depth=5}) achieves 95.97\% accuracy and provides built-in feature importance scores. It captures non-linear feature interactions (e.g., high Payment Delay \textit{combined with} low Usage Frequency) through recursive feature-space partitioning. This model revealed that Payment Delay accounts for 47.9\% of predictive power. However, its probability estimates are \textit{stepped} (each leaf outputs the same probability for all samples in that region), making it less suitable for smooth probability visualization.
 
-    \item \textbf{Built-in feature importance}: Unlike Logistic Regression (where coefficient interpretation requires careful handling of scaled features), the Decision Tree provides direct, intuitive feature importance scores based on how much each feature reduces impurity across all splits. This enabled us to immediately identify Payment Delay as the dominant churn driver (47.9\%).
-
-    \item \textbf{No distributional assumptions}: Logistic Regression assumes a linear relationship between features and the log-odds of the target. The Decision Tree makes no such assumption, making it more robust to the mixed distributions present in our dataset.
-
-    \item \textbf{Interpretability}: With \texttt{max\_depth=5}, the tree has at most 32 leaf nodes. Each prediction can be traced through a human-readable sequence of if-else rules, which is critical for explaining churn predictions to business stakeholders.
-
-    \item \textbf{Generalization}: Despite its higher accuracy, the Decision Tree shows no overfitting (train: 95.63\%, test: 95.97\%), confirming that the depth constraint provides effective regularization.
+    \item \textbf{Logistic Regression --- for deployment}: While its accuracy is lower (83.17\%), Logistic Regression produces \textbf{smooth, well-calibrated probability estimates} via the sigmoid function. For a deployed application that uses a gauge chart and three-tier risk interpretation, gradual probability changes convey more meaningful risk signals than the Decision Tree's coarser probability steps. The smoother output curve better supports the visualization and business interpretation layer.
 \end{enumerate}
 
-More complex models (Random Forest, XGBoost) were not used in Milestone\,1 because the Decision Tree already achieves $>$95\% accuracy with excellent interpretability. Ensemble methods are planned for Milestone\,2 if further accuracy gains are needed.
+\textbf{Why not deploy the Decision Tree despite higher accuracy?} In a production churn prediction system, the \textit{quality of the probability estimate} matters as much as classification accuracy. Two customers with 45\% and 55\% churn risk should produce meaningfully different probability scores. Logistic Regression achieves this graduation naturally, whereas a depth-5 Decision Tree may assign identical probabilities to both. The Decision Tree remains invaluable for offline analysis --- understanding \textit{which features drive churn} --- while Logistic Regression handles the inference-facing role.
+
+More complex models (Random Forest, XGBoost) are planned for Milestone\,2, where ensemble methods may offer both high accuracy and smooth probabilities.
 
 % ══════════════════════════════════════════════════════════════════════════
 %                      8. TOOL DEEP-DIVE
@@ -510,30 +494,40 @@ More complex models (Random Forest, XGBoost) were not used in Milestone\,1 becau
 
 This section provides a technical explanation of each library in our stack and \textit{why} it was chosen.
 
-\subsection{scikit-learn (v1.4.2)}
+\subsection{scikit-learn (v1.6.1)}
 
-scikit-learn is the core ML library used for preprocessing, model training, and evaluation. \textit{Why scikit-learn?} It provides a unified API where every estimator follows the same \texttt{fit()}/\texttt{predict()}/\texttt{transform()} pattern, making it easy to swap models or preprocessing steps without rewriting code. Key components used:
+scikit-learn is the core ML library used for preprocessing, model training, and evaluation. \textit{Why scikit-learn?} It provides a unified API where every estimator follows the same \texttt{fit()}/\texttt{predict()}/\texttt{transform()} pattern, making it easy to swap models or preprocessing steps without rewriting code. The version is pinned to \textbf{1.6.1} in both the training notebook and \texttt{requirements.txt} to ensure that the serialized model can be loaded without version mismatch errors. Key components used:
 
 \begin{itemize}
     \item \texttt{Pipeline}: Chains preprocessing and classification into a single object, preventing data leakage and enabling single-file serialization.
     \item \texttt{ColumnTransformer}: Applies different transformations to different column subsets in a single step.
     \item \texttt{StandardScaler}: Z-score normalization ($x' = \frac{x - \mu}{\sigma}$) for numeric features.
     \item \texttt{OneHotEncoder}: Converts $k$-category features into $k$ binary columns.
-    \item \texttt{DecisionTreeClassifier}: Tree-based classifier with configurable depth constraints.
+    \item \texttt{LogisticRegression}: Linear classifier producing smooth probability estimates via the sigmoid function (deployed model).
+    \item \texttt{DecisionTreeClassifier}: Tree-based classifier with configurable depth constraints (used for feature importance analysis).
     \item Metrics: \texttt{accuracy\_score}, \texttt{precision\_score}, \texttt{recall\_score}, \texttt{f1\_score}, \texttt{confusion\_matrix}.
 \end{itemize}
 
-\subsection{pandas (v2.2.2) \& NumPy (v1.26.4)}
+\subsection{pandas \& NumPy}
 
 pandas provides the \texttt{DataFrame} abstraction for tabular data manipulation. \textit{Why pandas?} It handles CSV I/O, column selection, null detection, and feature separation with concise, readable syntax. NumPy underpins pandas and scikit-learn with efficient array operations. Together, they form the data backbone of the entire pipeline---from loading the CSV (\texttt{pd.read\_csv}) to constructing single-row DataFrames for inference in the web app.
 
-\subsection{Streamlit (v1.33.0)}
+\subsection{Plotly}
 
-Streamlit is a Python framework for building interactive web applications with minimal code. \textit{Why Streamlit?} Unlike Flask or Django, Streamlit requires no HTML/CSS/JavaScript knowledge. A complete interactive dashboard can be built in under 100 lines of Python. It provides built-in widgets (\texttt{slider}, \texttt{selectbox}, \texttt{number\_input}) that automatically handle user input, state management, and reactive re-rendering. This made it the ideal choice for rapid prototyping of the inference interface.
+Plotly is a Python visualization library used for interactive charts in the web app. \textit{Why Plotly?} Unlike static Matplotlib charts, Plotly generates interactive, browser-native visualizations that users can hover over, zoom into, and explore. We use two Plotly components:
+\begin{itemize}
+    \item \texttt{go.Indicator} (gauge mode): Creates the speedometer-style churn probability chart with color-coded risk zones (green 0--40\%, yellow 40--70\%, red 70--100\%).
+    \item \texttt{go.Bar}: Creates the customer metrics overview chart, showing the 7 numeric input features as vertical bars for quick profile comparison.
+\end{itemize}
+Plotly integrates natively with Streamlit via \texttt{st.plotly\_chart()}, requiring no additional frontend code.
 
-\subsection{joblib (v1.3.2)}
+\subsection{Streamlit}
 
-joblib is used for model serialization (saving and loading the trained pipeline). \textit{Why joblib over Python's built-in \texttt{pickle}?} joblib is optimized for objects containing NumPy arrays (which scikit-learn models internally use), providing faster serialization and built-in compression. We used \texttt{compress=3} to reduce the model file to just 3.6\,KB, enabling near-instant loading at application startup.
+Streamlit is a Python framework for building interactive web applications with minimal code. \textit{Why Streamlit?} Unlike Flask or Django, Streamlit requires no HTML/CSS/JavaScript knowledge. It provides built-in widgets (\texttt{slider}, \texttt{selectbox}, \texttt{number\_input}) that automatically handle user input, state management, and reactive re-rendering. Streamlit's \texttt{st.tabs()} enables the tabbed interface separating the Prediction and Analytics views. This made it the ideal choice for rapid prototyping of the inference interface.
+
+\subsection{joblib}
+
+joblib is used for model serialization (saving and loading the trained pipeline). \textit{Why joblib over Python's built-in \texttt{pickle}?} joblib is optimized for objects containing NumPy arrays (which scikit-learn models internally use), providing faster serialization and built-in compression. We used \texttt{compress=3} to reduce the model file size, enabling near-instant loading at application startup.
 
 % ══════════════════════════════════════════════════════════════════════════
 %                      9. KEY SUB-FEATURES
@@ -551,24 +545,24 @@ Rather than applying transformations manually in scattered code, we built a \tex
     \item \textbf{Single-artifact deployment}: One \texttt{.pkl} file contains the entire system (preprocessor + model), simplifying deployment.
 \end{itemize}
 
-\subsection{Sub-Feature 2: Real-Time Inference Engine}
+\subsection{Sub-Feature 2: Real-Time Inference with Plotly Visualizations}
 
-The Streamlit application provides \textbf{real-time, interactive predictions}. When a user adjusts any input widget and clicks ``Predict Churn,'' the system:
+The Streamlit application provides \textbf{real-time, interactive predictions} enhanced with Plotly visualizations. When a user clicks ``Predict Churn,'' the system:
 \begin{itemize}
     \item Constructs a DataFrame from the raw inputs (including categorical strings).
     \item Passes it through the full pipeline (preprocessing $\rightarrow$ prediction) in a single \texttt{model.predict()} call.
-    \item Returns both the binary classification and the continuous probability score within milliseconds.
+    \item Displays results via a \textbf{Plotly gauge chart} (speedometer-style probability visualization with green/yellow/red risk zones) and a \textbf{three-tier risk interpretation} (stable / moderate / high risk).
 \end{itemize}
-This enables customer success teams to perform ad-hoc risk assessments without writing code or waiting for batch processing.
+\textit{Why a gauge chart?} The model's primary output is a probability score. A speedometer makes risk level immediately intuitive for business users---common in ML dashboards and far more informative than a raw number.
 
-\subsection{Sub-Feature 3: Interactive Risk Dashboard}
+\subsection{Sub-Feature 3: Interactive Analytics Dashboard}
 
-The output interface goes beyond a simple yes/no prediction. It provides a \textbf{multi-component risk dashboard}:
+The app features a \textbf{tabbed interface} (Prediction + Analytics) providing a multi-component dashboard:
 \begin{itemize}
-    \item \textbf{Churn probability meter}: A progress bar visualizing the exact probability (e.g., 73.2\%), giving a nuanced risk view.
-    \item \textbf{Color-coded risk indicator}: Red (\texttt{HIGH}) or green (\texttt{LOW}) alert based on the binary prediction, enabling at-a-glance assessment.
-    \item \textbf{Customer profile summary}: A formatted table displaying all input features, creating a self-contained record for each prediction.
+    \item \textbf{Customer metrics bar chart} (Plotly): Displays the 7 numeric input features as a bar chart, enabling visual comparison of the customer's profile. \textit{Why?} When stakeholders ask ``Why is this customer high risk?'', the bar chart immediately shows if Payment Delay is high or Tenure is low.
+    \item \textbf{Customer profile summary}: A formatted DataFrame table displaying all input features, creating a self-contained record for each prediction.
 \end{itemize}
+\textit{Why these specific charts and not others?} This is an ML prediction app, not a general analytics dashboard. We added only visualizations that serve interpretability: the gauge shows \textit{what the model predicts}, and the bar chart helps explain \textit{why}. Pie charts, random line charts, and excessive animations were deliberately excluded.
 
 % ══════════════════════════════════════════════════════════════════════════
 %                      10. DEPLOYMENT
@@ -586,10 +580,11 @@ The output interface goes beyond a simple yes/no prediction. It provides a \text
 \textbf{Component} & \textbf{Technology} & \textbf{Version} \\
 \midrule
 Language      & Python       & 3.12 \\
-ML Library    & scikit-learn & 1.4.2 \\
-Data          & pandas / NumPy & 2.2.2 / 1.26.4 \\
-Serialization & joblib       & 1.3.2 \\
-Web App       & Streamlit    & 1.33.0 \\
+ML Library    & scikit-learn & 1.6.1 \\
+Data          & pandas / NumPy & latest \\
+Serialization & joblib       & latest \\
+Visualization & Plotly       & latest \\
+Web App       & Streamlit    & latest \\
 Notebook      & Google Colab & --- \\
 Hosting       & Hugging Face Spaces & --- \\
 \bottomrule
@@ -598,7 +593,7 @@ Hosting       & Hugging Face Spaces & --- \\
 
 \subsection{Hugging Face Deployment}
 
-The Streamlit application is deployed on \textbf{Hugging Face Spaces}, a free hosting platform for ML demos. \textit{Why Hugging Face Spaces?} It natively supports Streamlit apps, provides automatic builds from Git repositories, requires zero infrastructure management, and offers a public URL for easy sharing with stakeholders and evaluators. The deployment process is:
+The Streamlit application is deployed on \textbf{Hugging Face Spaces}, a free hosting platform for ML demos. \textit{Why Hugging Face Spaces?} It natively supports Streamlit apps, provides automatic builds from Git repositories, requires zero infrastructure management, and offers a public URL (\url{https://offxkavya-customer-churn-prediction.hf.space/}) for easy sharing with stakeholders and evaluators. The deployment process is:
 
 \begin{enumerate}
     \item Push the project repository (\texttt{app.py}, \texttt{churn\_model.pkl}, \texttt{requirements.txt}) to a Hugging Face Space.
@@ -611,11 +606,11 @@ The Streamlit application is deployed on \textbf{Hugging Face Spaces}, a free ho
 The deployed application follows the same four-stage pipeline described in Section~\ref{fig:architecture}:
 
 \begin{enumerate}
-    \item The serialized pipeline (\texttt{churn\_model.pkl}) is loaded at startup using \texttt{joblib.load()}.
+    \item The serialized Logistic Regression pipeline (\texttt{churn\_model.pkl}) is loaded at startup using \texttt{joblib.load()}.
     \item User inputs are collected via Streamlit sidebar widgets (sliders, dropdowns, number inputs).
     \item Inputs are assembled into a single-row \texttt{pandas.DataFrame} matching the training schema.
-    \item \texttt{model.predict()} returns the binary churn prediction; \texttt{model.predict\_proba()} returns the probability.
-    \item Results are displayed with a progress bar (probability), color-coded risk indicator, and a summary table.
+    \item \texttt{model.predict()} returns the binary churn prediction; \texttt{model.predict\_proba()} returns the calibrated probability.
+    \item Results are displayed in a tabbed interface: Tab\,1 shows the Plotly gauge chart, risk level, and risk interpretation; Tab\,2 shows the customer profile table and metrics bar chart.
 \end{enumerate}
 
 % ══════════════════════════════════════════════════════════════════════════
@@ -625,7 +620,7 @@ The deployed application follows the same four-stage pipeline described in Secti
 
 \subsection{Conclusion}
 
-This project successfully demonstrates that customer churn can be predicted with high accuracy (95.97\%) using a depth-constrained Decision Tree classifier on behavioral data. The key finding is that \textbf{Payment Delay is the dominant churn signal}, followed by Support Calls and Tenure. The full pipeline---from data preprocessing through model deployment on Streamlit---is operational and serves real-time predictions.
+This project successfully demonstrates an end-to-end customer churn prediction system. Two models were trained: a Decision Tree (95.97\% accuracy) for analytical insights---revealing that \textbf{Payment Delay is the dominant churn signal}---and Logistic Regression (83.17\% accuracy) for deployment, chosen for its smoother probability estimates suitable for the gauge chart and risk interpretation. The full pipeline is deployed on Hugging Face Spaces via a Streamlit application with Plotly visualizations, serving real-time, interactive predictions.
 
 \subsection{Milestone\,2: Agentic AI Retention Strategy Assistant}
 
@@ -648,10 +643,10 @@ The next phase of this project will evolve the system from a passive prediction 
 \toprule
 \textbf{Team Member} & \textbf{Contribution} \\
 \midrule
-Saksham Miglani & \\
-Kavya Mukhija & \\
-Pratyush Parida & \\
-Aditya Samadhiya & \\
+Saksham Miglani & Data Sourcing, Deployment, Streamlit App \\
+Kavya Mukhija & Model Training, Evaluation, Feature Engineering, Plotly Visualization \\
+Pratyush Parida & Data Sourcing, Deployment, Streamlit App \\
+Aditya Samadhiya & Data Preprocessing, EDA, Documentation, Video \\
 \bottomrule
 \end{tabular}
 \end{table}

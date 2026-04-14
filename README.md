@@ -4,12 +4,12 @@
 
 - [Project Overview](#project-overview)
 - [System Architecture](#system-architecture)
-- [Project Structure](#project-structure)
+- [Tech Stack](#tech-stack)
 - [Setup Instructions](#setup-instructions)
-- [Dataset](#dataset)
-- [ML Pipeline (Notebook)](#ml-pipeline-notebook)
+- [Project Structure](#project-structure)
+- [File-by-File Breakdown](#file-by-file-breakdown)
 - [Model Details](#model-details)
-- [Streamlit Web App](#streamlit-web-app)
+- [Visualizations](#visualizations)
 - [Deployment](#deployment)
 - [Key Observations](#key-observations)
 
@@ -20,7 +20,7 @@
 An **end-to-end Machine Learning project** that predicts customer churn using historical behavioral data. It includes:
 
 - A **Jupyter Notebook** for data exploration, model training, and evaluation
-- A **Streamlit web app** for real-time churn predictions
+- A **Streamlit web app** with Plotly visualizations for real-time churn predictions
 - Deployment on **Hugging Face Spaces**
 
 This is **Milestone 1** of a larger initiative to build an agentic AI retention strategist.
@@ -29,72 +29,22 @@ This is **Milestone 1** of a larger initiative to build an agentic AI retention 
 
 ## System Architecture
 
-Data flows from user input to prediction output through four stages:
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  STAGE 1: USER INPUT                                    │
-│  Customer details entered via Streamlit sidebar widgets │
-│  (Age, Gender, Tenure, Usage Frequency, etc.)           │
-└────────────────────────┬────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│  STAGE 2: PREPROCESSING (inside Pipeline)               │
-│  StandardScaler → 7 numeric features (zero mean, σ=1)   │
-│  OneHotEncoder  → 3 categorical features (binary cols)  │
-└────────────────────────┬────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│  STAGE 3: MODEL INFERENCE                               │
-│  Decision Tree Classifier (max_depth=5)                 │
-│  Outputs: binary prediction (0/1) + probability score   │
-└────────────────────────┬────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│  STAGE 4: OUTPUT DISPLAY                                │
-│  Churn probability (%) with progress bar                │
-│  Risk level indicator (HIGH / LOW) with color coding    │
-│  Full customer profile summary table                    │
-└─────────────────────────────────────────────────────────┘
-```
-
-**Component diagram:**
-
-```
-┌──────────────┐     ┌────────────────────────────────┐     ┌──────────────┐
-│ Google Colab │────▶│  churn_model.pkl               │◀────│  app.py      │
-│  (Training)  │     │  (Pipeline: Preprocessor +     │     │  (Streamlit) │
-│              │     │  DecisionTreeClassifier)       │     │              │
-└──────────────┘     └────────────────────────────────┘     └──────┬───────┘
-                                                                    │
-                                                                    ▼
-                                                           ┌──────────────┐
-                                                           │ Hugging Face │
-                                                           │   Spaces     │
-                                                           │  (Hosting)   │
-                                                           └──────────────┘
-```
+![System Architecture](./Assets/SystemArchitecture.png)
 
 ---
 
-## Project Structure
+## Tech Stack
 
-```
-customer-churn-prediction/
-├── Data/
-│   └── customer_churn_dataset-testing-master.csv   # 64,374 rows of customer data
-├── Model/
-│   └── churn_model.pkl                             # Serialized Decision Tree pipeline (~3.6 KB)
-├── Notebook/
-│   └── GenAi-Capstone.ipynb                        # Training & evaluation notebook (Colab)
-├── app.py                                          # Streamlit web app (89 lines)
-├── requirements.txt                                # Python dependencies
-├── runtime.txt                                     # Python 3.12
-└── doc.md                                          # This documentation
-```
+| Component | Technology | Version | Description |
+|---|---|---|---|
+| **Language** | Python | 3.12 | Core programming language |
+| **ML Library** | scikit-learn | 1.6.1 | Model training & preprocessing pipeline |
+| **Data Manipulation** | pandas / NumPy | latest | Data handling and array operations |
+| **Serialization** | joblib | latest | Model saving and loading |
+| **Visualization** | Plotly | latest | Interactive gauge and bar charts |
+| **Web Framework** | Streamlit | latest | Interactive UI dashboard |
+| **Training Env** | Google Colab | — | Cloud Jupyter notebook environment |
+| **Deployment** | Hugging Face Spaces | — | Cloud hosting platform for the web app |
 
 ---
 
@@ -108,14 +58,12 @@ customer-churn-prediction/
 ### Local Setup
 
 1. **Clone the repository:**
-
    ```bash
    git clone <repository-url>
    cd customer-churn-prediction
    ```
 
 2. **Install dependencies:**
-
    ```bash
    pip install -r requirements.txt
    ```
@@ -123,73 +71,175 @@ customer-churn-prediction/
    This installs:
    | Package | Version | Purpose |
    |---|---|---|
-   | streamlit | 1.33.0 | Web app framework |
-   | pandas | 2.2.2 | Data manipulation |
-   | numpy | 1.26.4 | Numerical operations |
-   | scikit-learn | 1.4.2 | ML pipeline & model |
-   | joblib | 1.3.2 | Model serialization |
+   | streamlit | latest | Web app framework |
+   | pandas | latest | Data manipulation |
+   | scikit-learn | 1.6.1 | ML pipeline & model (pinned to match training) |
+   | joblib | latest | Model serialization |
+   | plotly | latest | Gauge chart & bar chart visualizations |
 
 3. **Run the Streamlit app:**
-
    ```bash
    streamlit run app.py
    ```
-
    The app will open at `http://localhost:8501`.
+   The app is also deployed on Hugging Face Spaces: [https://offxkavya-customer-churn-prediction.hf.space/](https://offxkavya-customer-churn-prediction.hf.space/)
 
 > **Note:** The app expects `churn_model.pkl` in the working directory. If running from the project root, ensure the model file is accessible (it may be in the `Model/` directory).
 
 ### Retraining the Model
 
 1. Open `Notebook/GenAi-Capstone.ipynb` in Google Colab or Jupyter.
-2. Update the data path if needed: `filePath="../Data/customer_churn_dataset-testing-master.csv"`.
-3. Run all cells. The last cell exports `churn_model.pkl`.
+2. Update the data path if needed.
+3. Run all cells. The last cell exports `churn_model.pkl` (Logistic Regression pipeline).
 4. Copy the exported `.pkl` file to the project root for the Streamlit app.
 
 ---
 
-## Dataset
+## Project Structure
 
-**File:** `Data/customer_churn_dataset-testing-master.csv`
-
-- **64,374 rows** × **12 columns**
-- **Zero missing values**
-
-| Column | Type | Range / Values | Description |
-|---|---|---|---|
-| CustomerID | int | 1–64,374 | Unique identifier (**dropped before training**) |
-| Age | int | 18–65 | Customer's age in years |
-| Gender | category | Male, Female | Customer's gender |
-| Tenure | int | 1–60 | Months as a customer |
-| Usage Frequency | int | 1–30 | Service usage frequency |
-| Support Calls | int | 0–10 | Number of support calls |
-| Payment Delay | int | 0–30 | Avg payment delay in days |
-| Subscription Type | category | Basic, Standard, Premium | Subscription tier |
-| Contract Length | category | Monthly, Quarterly, Annual | Contract duration |
-| Total Spend | int | 100–1,000 | Total monetary spend ($) |
-| Last Interaction | int | 1–30 | Days since last interaction |
-| **Churn** (target) | binary | 0 (Stayed), 1 (Churned) | Target variable |
+```
+customer-churn-prediction/
+├── Assets/                                          
+├── Data/
+│   └── customer_churn_dataset-testing-master.csv   (64,374 rows of customer data)
+├── Model/
+│   └── churn_model.pkl                             (serialized Logistic Regression pipeline)
+├── Notebook/
+│   └── GenAi-Capstone.ipynb                        (training & evaluation notebook)
+├── app.py                                          (Streamlit web app — 180 lines)
+├── requirements.txt                                (Python dependencies)
+├── doc.md                                          (this documentation)
+└── README.md                                       (project README)
+```
 
 ---
 
-## ML Pipeline (Notebook)
+## File-by-File Breakdown
 
-The `GenAi-Capstone.ipynb` notebook follows this workflow:
+### 1. `Data/customer_churn_dataset-testing-master.csv`
 
-1. **Import libraries** — pandas, numpy, scikit-learn
-2. **Load data** — `pd.read_csv()`, inspect with `.head()` and `.shape`
-3. **Drop `CustomerID`** — sequential identifier with no predictive value
-4. **Check nulls** — `df.isnull().sum()` → all zeros
-5. **`dropna()`** — defensive measure for production robustness
-6. **Split features/target** — `X = df.drop("Churn")`, `y = df["Churn"]`
-7. **Train-test split** — 80/20, `random_state=42`
-8. **Identify feature types** — 7 numeric, 3 categorical
-9. **Build `ColumnTransformer`** — StandardScaler (numeric) + OneHotEncoder (categorical)
-10. **Train Logistic Regression** — baseline model → 83.17% accuracy
-11. **Train Decision Tree** — `max_depth=5` → **95.97% accuracy, 98.24% recall**
-12. **Overfitting check** — train (95.63%) ≈ test (95.97%) → no overfitting
-13. **Feature importance** — Payment Delay dominates at 47.9%
-14. **Export model** — `joblib.dump(tree_pipeline, "churn_model.pkl", compress=3)`
+A CSV with **64,374 rows** and **12 columns**:
+
+| Column | Type | Range / Values |
+|---|---|---|
+| CustomerID | int | 1–64,374 (unique identifier, dropped before training) |
+| Age | int | 18–65 |
+| Gender | category | Male, Female |
+| Tenure | int | 1–60 months |
+| Usage Frequency | int | 1–30 |
+| Support Calls | int | 0–10 |
+| Payment Delay | int | 0–30 days |
+| Subscription Type | category | Basic, Standard, Premium |
+| Contract Length | category | Monthly, Quarterly, Annual |
+| Total Spend | int | 100–1,000 |
+| Last Interaction | int | 1–30 days |
+| **Churn** | int (target) | 0 (stayed) or 1 (churned) |
+
+- **No missing values** in the dataset.
+
+---
+
+### 2. `Notebook/GenAi-Capstone.ipynb`
+
+A Google Colab notebook that performs the full ML workflow:
+
+#### Step-by-step pipeline:
+
+1. **Install pinned scikit-learn** — `!pip install scikit-learn==1.6.1` (ensures version consistency between training and deployment)
+
+2. **Imports** — pandas, numpy, scikit-learn (train_test_split, StandardScaler, OneHotEncoder, ColumnTransformer, Pipeline, LogisticRegression, DecisionTreeClassifier, metrics)
+
+3. **Data Loading** — reads the CSV into a DataFrame, inspects with `.head()` and `.shape()`
+
+4. **Preprocessing**
+   - Drops `CustomerID` column
+   - Confirms **zero null values**, then calls `dropna()` as a safety measure
+   - Splits features (`X`) and target (`y = Churn`)
+   - 80/20 train-test split (`random_state=42`)
+
+5. **Feature Engineering**
+   - **Numeric features** (7): Age, Tenure, Usage Frequency, Support Calls, Payment Delay, Total Spend, Last Interaction → **StandardScaler**
+   - **Categorical features** (3): Gender, Subscription Type, Contract Length → **OneHotEncoder** (`handle_unknown="ignore"`)
+   - Combined via `ColumnTransformer`
+
+6. **Model 1: Logistic Regression Pipeline**
+   - Results:
+     - Accuracy: **83.17%**
+     - Precision: **81.63%**
+     - Recall: **83.06%**
+     - F1 Score: **82.34%**
+
+7. **Model 2: Decision Tree Pipeline** (`max_depth=5, random_state=42`)
+   - Results:
+     - Accuracy: **95.97%**
+     - Recall: **98.24%**
+     - No sign of overfitting (training accuracy ≈ 95.63%, testing ≈ 95.97%)
+
+8. **Feature Importance** (from Decision Tree):
+   - **Payment Delay** dominates at 47.9%
+   - Support Calls: 14.4%
+   - Tenure: 9.9%
+   - Usage Frequency: 9.1%
+   - Gender (Female): 8.3%
+   - Last Interaction: 0% importance
+
+9. **Model Export** — saves the **Logistic Regression pipeline** as `churn_model.pkl` using `joblib.dump(compress=3)`. Logistic Regression was chosen for deployment because it produces smoother, well-calibrated probability estimates suitable for the gauge chart and risk interpretation in the web app.
+
+---
+
+### 3. `Model/churn_model.pkl`
+
+The serialized **Logistic Regression pipeline**. It includes both the `ColumnTransformer` (preprocessing) and the `LogisticRegression` classifier — so raw input with categorical strings can be passed directly.
+
+---
+
+### 4. `app.py` — Streamlit Web Application (180 lines)
+
+The front-end inference app with **Plotly visualizations** and a **tabbed interface**:
+
+- **Page config**: title "Customer Churn Predictor", 📊 icon, wide layout
+- **Custom CSS**: centered title/subtitle styling, adjusted block padding
+- **Model loading**: `joblib.load("churn_model.pkl")`
+- **Sidebar inputs** (10 features):
+  - Sliders: Age (18–80), Tenure (0–120), Usage Frequency (0–100), Support Calls (0–20), Payment Delay (0–60), Days Since Last Interaction (0–365)
+  - Number input: Total Spend (0–100,000)
+  - Dropdowns: Gender, Subscription Type, Contract Length
+- **Predict button**: 🚀 Predict Churn
+
+#### Tab 1 — 📈 Prediction:
+- **Gauge Chart** (Plotly): Speedometer-style churn probability visualization
+  - Green zone (0–40%), Yellow zone (40–70%), Red zone (70–100%)
+  - Bar color changes: green if <50%, red if ≥50%
+- **Risk Level Display**: Error/success alert with HIGH/LOW label
+- **Risk Interpretation**: Three-tier contextual message:
+  - <30%: "Customer is stable."
+  - 30–70%: "Monitor closely."
+  - >70%: "Immediate retention action recommended."
+
+#### Tab 2 — 📊 Analytics:
+- **Customer Profile Summary**: DataFrame displaying all input features
+- **Customer Metrics Overview**: Plotly bar chart showing the 7 numeric input features
+
+**Why these charts?**
+- **Gauge chart** → visualizes the model's main output (probability) in a dashboard-friendly, professional format
+- **Customer metrics bar chart** → helps business users visually compare the customer's profile and understand risk drivers (e.g., high Payment Delay, low Tenure)
+- No pie charts or random line charts — this is an ML prediction app, so visualizations are chosen to serve interpretability
+
+---
+
+### 5. `requirements.txt`
+
+```
+streamlit
+pandas
+scikit-learn==1.6.1
+joblib
+plotly
+```
+
+- scikit-learn **pinned to 1.6.1** (must match the training version to avoid model deserialization errors)
+- **plotly** added for gauge chart and bar chart visualizations
+- Other packages unpinned (latest compatible versions)
 
 ---
 
@@ -213,11 +263,6 @@ The `GenAi-Capstone.ipynb` notebook follows this workflow:
 | 3 | Tenure | 0.0991 |
 | 4 | Usage Frequency | 0.0910 |
 | 5 | Gender (Female) | 0.0828 |
-| 6 | Age | 0.0431 |
-| 7 | Gender (Male) | 0.0327 |
-| 8 | Total Spend | 0.0212 |
-| 9 | Contract Length (Annual) | 0.0074 |
-| 10 | Last Interaction | 0.0000 |
 
 ### Confusion Matrix (Logistic Regression)
 
@@ -228,24 +273,23 @@ The `GenAi-Capstone.ipynb` notebook follows this workflow:
 
 ---
 
-## Streamlit Web App
+## Visualizations
 
-**File:** `app.py` (89 lines)
+### Why These Charts?
 
-### Features
+Visualizations were chosen to improve model **interpretability** and make the app **business-friendly**:
 
-- **Sidebar inputs:** Sliders and dropdowns for all 10 features
-- **Prediction output:** Churn probability (%) with progress bar
-- **Risk indicator:** Color-coded HIGH (red) / LOW (green) alert
-- **Profile summary:** Table showing all input features
+| Chart | What It Shows | Why It's Included |
+|---|---|---|
+| **Gauge Chart** | Churn probability (0–100%) | The model's main output is probability — a speedometer visual makes risk level immediately clear |
+| **Customer Metrics Bar Chart** | Numeric feature values | Helps understand *why* a customer may be at risk (e.g., high Payment Delay, low Tenure) |
+| **Customer Profile Table** | All input features | Creates a self-contained record for each prediction |
 
-### How It Works
+### What Was NOT Added (and Why)
 
-1. Loads `churn_model.pkl` at startup via `joblib.load()`
-2. Collects user inputs through Streamlit sidebar widgets
-3. Constructs a single-row `pandas.DataFrame` matching the training schema
-4. Calls `model.predict()` for binary result + `model.predict_proba()` for probability
-5. Displays results with visual indicators
+- ❌ **Pie charts** — not meaningful for single-customer prediction
+- ❌ **Random line charts** — no time-series data to plot
+- ❌ **Excessive animations** — this is an ML prediction app, not a data analytics dashboard
 
 ---
 
@@ -264,15 +308,15 @@ The app is deployed on **Hugging Face Spaces**, which:
 
 1. Push `app.py`, `churn_model.pkl`, and `requirements.txt` to a Hugging Face Space
 2. Hugging Face detects the Streamlit SDK and installs dependencies
-3. The app is live at the Space's public URL
+3. The app is live at the Space's public URL: [https://offxkavya-customer-churn-prediction.hf.space/](https://offxkavya-customer-churn-prediction.hf.space/)
 
 ---
 
 ## Key Observations
 
-1. **Payment Delay is the #1 churn predictor** (47.9% feature importance) — a retention strategy targeting payment delays could significantly reduce churn
-2. **Decision Tree chosen over Logistic Regression** due to +12.8pp accuracy gain driven by non-linear feature interactions
-3. **No overfitting** — train (95.63%) ≈ test (95.97%) with `max_depth=5`
-4. **Pipeline design** ensures the deployed model accepts raw categorical strings with no external preprocessing needed
-5. **Last Interaction has zero importance** — recency of contact alone does not predict churn
-6. **App slider ranges exceed training data** (e.g., Total Spend up to 100K vs training max of 1,000) — predictions on out-of-distribution inputs may be unreliable
+1. **Two models trained, one deployed**: Decision Tree achieved 96% accuracy and provided feature importance insights; Logistic Regression produces smoother probability estimates and was chosen for deployment in the Streamlit app
+2. **Payment Delay is the single most important feature** for churn prediction (47.9% importance from Decision Tree analysis)
+3. The model is a **full pipeline** (preprocessor + classifier), meaning raw data with categorical strings can be passed directly without manual encoding
+4. The app uses **Plotly** for professional visualizations (gauge chart + bar chart) with a **tabbed interface** (Prediction + Analytics)
+5. scikit-learn is **pinned to 1.6.1** in both the notebook and requirements.txt for version consistency
+6. App slider ranges (e.g., Total Spend up to 100K) still exceed training data ranges (max 1,000) — predictions on extreme values may be less reliable
